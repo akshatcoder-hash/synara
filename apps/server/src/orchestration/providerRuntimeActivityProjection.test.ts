@@ -18,6 +18,19 @@ import {
   providerActivityUpdateFingerprint,
 } from "./providerRuntimeActivityProjection.ts";
 
+const REASONING_PROVIDERS = [
+  "codex",
+  "claudeAgent",
+  "cursor",
+  "antigravity",
+  "grok",
+  "droid",
+  "opencode",
+  "pi",
+  "devin",
+  "omp",
+] as const;
+
 const CREATED_AT = "2026-07-20T10:00:00.000Z";
 const THREAD_ID = ThreadId.makeUnsafe("thread-activity-projection");
 const TURN_ID = TurnId.makeUnsafe("turn-activity-projection");
@@ -721,7 +734,7 @@ describe("provider runtime activity projection", () => {
     expect(events.map(projectProviderRuntimeActivities)).toEqual([[], [], []]);
   });
 
-  it("projects only readable completed Codex, Antigravity, and OpenCode reasoning", () => {
+  it("projects readable reasoning for every provider and hides empty boundaries", () => {
     const absent = [
       runtimeEvent({
         type: "content.delta",
@@ -746,13 +759,12 @@ describe("provider runtime activity projection", () => {
         eventId: "reasoning-cursor",
         provider: "cursor",
         turnId: TURN_ID,
-        itemId: RuntimeItemId.makeUnsafe("reasoning-cursor"),
         payload: { itemType: "reasoning", status: "completed", detail: "Readable" },
       }),
     ];
     expect(absent.map(projectProviderRuntimeActivities)).toEqual([[], [], []]);
 
-    for (const provider of ["codex", "antigravity", "opencode"] as const) {
+    for (const provider of REASONING_PROVIDERS) {
       const [activity] = projectProviderRuntimeActivities(
         runtimeEvent({
           type: "item.completed",
@@ -776,6 +788,24 @@ describe("provider runtime activity projection", () => {
           detail: "Read the protocol mapping",
           data: { toolCallId: `reasoning-${provider}` },
         },
+      });
+    }
+  });
+
+  it.each(REASONING_PROVIDERS)("retains longer %s reasoning within the shared detail limit", (provider) => {
+    for (const length of [4_000, 9_000]) {
+      const detail = "x".repeat(length);
+      const [activity] = projectProviderRuntimeActivities(
+        runtimeEvent({
+          provider,
+          eventId: `long-thought-${provider}-${length}`,
+          type: "item.completed",
+          itemId: RuntimeItemId.makeUnsafe("long-thought"),
+          payload: { itemType: "reasoning", status: "completed", detail },
+        }),
+      );
+      expect(activity?.payload).toMatchObject({
+        detail: length <= 8_000 ? detail : `${detail.slice(0, 7_997)}...`,
       });
     }
   });

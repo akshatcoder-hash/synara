@@ -108,10 +108,14 @@ A local stop remains subject to a later native completion; after restart, sessio
 restore the original ownership and correct the recorded outcome. If native resume fails, Synara
 reports that the old task can no longer be tracked or controlled rather than claiming it completed.
 
-Claude's readable reasoning appears as compact progress text between tool actions while it works.
-Open a reasoning row to read its available detail. This text comes from the running provider;
-Synara does not make another model request to generate it. Models that do not return readable
-reasoning continue to show their normal tool activity and assistant messages.
+All supported providers display their available readable reasoning by default as compact
+progress text while the agent works. Open a reasoning row to read its available detail
+(up to 8,000 characters). Codex displays provider-authored reasoning summaries; OpenCode,
+Oh My Pi, Pi, Claude, Cursor, Devin, Grok, Droid, and Antigravity display the thinking text
+their runtime exposes. Availability depends on the selected model and runtime. Synara does
+not make another model request to generate this text. Rows retain their position as they
+update and remain available after completion or interruption. Models that do not return
+readable reasoning continue to show normal tool activity and messages.
 Claude's tool-use summaries also appear as expandable text between tool groups. API retries
 show their attempt count and reported delay. Authentication displays its latest state, including
 between turns, with a Settings hint when attention is required; raw login output is not shown.

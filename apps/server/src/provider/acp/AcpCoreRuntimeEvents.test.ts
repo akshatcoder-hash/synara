@@ -13,6 +13,37 @@ import {
 import { mergeToolCallState, parseSessionUpdateEvent } from "./AcpRuntimeModel.ts";
 
 describe("AcpCoreRuntimeEvents", () => {
+  it.each(["cursor", "droid", "grok", "devin", "omp"] as const)(
+    "gives unnamed %s thoughts identities scoped to the turn and child agent",
+    (provider) => {
+      const input = {
+        stamp: { eventId: "thought-event" as never, createdAt: "2026-10-24T00:00:00Z" },
+        provider,
+        threadId: "thread-1" as never,
+        turnId: TurnId.makeUnsafe("turn-1"),
+        text: "Checking the code",
+        streamKind: "reasoning_text" as const,
+        rawPayload: {},
+      };
+      const first = makeAcpContentDeltaEvent(input);
+      expect(first.itemId).toBe(provider + ":turn-1:reasoning");
+      expect(makeAcpContentDeltaEvent({ ...input, text: "Next step" }).itemId).toBe(first.itemId);
+      expect(
+        makeAcpContentDeltaEvent({ ...input, turnId: TurnId.makeUnsafe("turn-2") }).itemId,
+      ).not.toBe(first.itemId);
+      expect(
+        makeAcpContentDeltaEvent({ ...input, providerRefs: { providerThreadId: "child" } }).itemId,
+      ).toBe(provider + ":turn-1:reasoning:child");
+      expect(makeAcpContentDeltaEvent({ ...input, itemId: "native-thought" }).itemId).toBe(
+        "native-thought",
+      );
+      expect(makeAcpContentDeltaEvent({ ...input, turnId: undefined }).itemId).toBeUndefined();
+      expect(
+        makeAcpContentDeltaEvent({ ...input, streamKind: "assistant_text" }).itemId,
+      ).toBeUndefined();
+    },
+  );
+
   it.each(["cursor", "droid", "grok", "devin"] as const)(
     "preserves Computer identity through %s start, update and sparse completion events",
     (provider) => {
