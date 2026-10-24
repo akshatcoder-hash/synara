@@ -4187,7 +4187,9 @@ describe("ProviderRuntimeIngestion", () => {
         (activity: ProviderRuntimeTestActivity) => activity.id === "evt-reasoning-delta",
       ),
     ).toBe(false);
-    expect(thread.activities.some((activity) => activity.summary === "Reasoning trace")).toBe(false);
+    expect(thread.activities.some((activity) => activity.summary === "Reasoning trace")).toBe(
+      false,
+    );
     expect(thread.messages).toHaveLength(0);
   });
 
@@ -4211,9 +4213,9 @@ describe("ProviderRuntimeIngestion", () => {
             eventId: asEventId(eventId),
             createdAt,
             payload: {
-            streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text",
-            delta,
-          },
+              streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text",
+              delta,
+            },
           }),
         );
       const first = await appendDelta("claude-preview-1", firstAt, "While the worker runs, ");
@@ -4313,7 +4315,10 @@ describe("ProviderRuntimeIngestion", () => {
           type: "content.delta",
           itemId: asItemId("recovered-thought"),
           eventId: asEventId("claude-accepted-thought"),
-          payload: { streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text", delta: "Checking the remaining cases." },
+          payload: {
+            streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text",
+            delta: "Checking the remaining cases.",
+          },
         }),
       );
       await Effect.runPromise(
@@ -4359,7 +4364,10 @@ describe("ProviderRuntimeIngestion", () => {
           eventId: asEventId("claude-late-reasoning-delta"),
           itemId: asItemId("recovered-thought"),
           createdAt: "2026-10-03T10:01:03.000Z",
-          payload: { streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text", delta: "Late delta" },
+          payload: {
+            streamKind: provider === "codex" ? "reasoning_summary_text" : "reasoning_text",
+            delta: "Late delta",
+          },
         }),
       );
       await harness.drain();
@@ -4377,7 +4385,6 @@ describe("ProviderRuntimeIngestion", () => {
         },
       });
     });
-
   });
 
   it.each([0, 2_001])(

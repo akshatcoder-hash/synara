@@ -1065,10 +1065,7 @@ const make = Effect.gen(function* () {
   });
   // Keep row identity after the text buffer is consumed. On a cache miss the
   // durable activity restores ordering and terminal state across recovery.
-  const reasoningActivityById = yield* Cache.make<
-    string,
-    OrchestrationThreadActivity | undefined
-  >({
+  const reasoningActivityById = yield* Cache.make<string, OrchestrationThreadActivity | undefined>({
     capacity: BUFFERED_REASONING_SUMMARY_BY_KEY_CACHE_CAPACITY,
     timeToLive: BUFFERED_REASONING_SUMMARY_BY_KEY_TTL,
     lookup: () => Effect.succeed(undefined),

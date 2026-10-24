@@ -792,23 +792,26 @@ describe("provider runtime activity projection", () => {
     }
   });
 
-  it.each(REASONING_PROVIDERS)("retains longer %s reasoning within the shared detail limit", (provider) => {
-    for (const length of [4_000, 9_000]) {
-      const detail = "x".repeat(length);
-      const [activity] = projectProviderRuntimeActivities(
-        runtimeEvent({
-          provider,
-          eventId: `long-thought-${provider}-${length}`,
-          type: "item.completed",
-          itemId: RuntimeItemId.makeUnsafe("long-thought"),
-          payload: { itemType: "reasoning", status: "completed", detail },
-        }),
-      );
-      expect(activity?.payload).toMatchObject({
-        detail: length <= 8_000 ? detail : `${detail.slice(0, 7_997)}...`,
-      });
-    }
-  });
+  it.each(REASONING_PROVIDERS)(
+    "retains longer %s reasoning within the shared detail limit",
+    (provider) => {
+      for (const length of [4_000, 9_000]) {
+        const detail = "x".repeat(length);
+        const [activity] = projectProviderRuntimeActivities(
+          runtimeEvent({
+            provider,
+            eventId: `long-thought-${provider}-${length}`,
+            type: "item.completed",
+            itemId: RuntimeItemId.makeUnsafe("long-thought"),
+            payload: { itemType: "reasoning", status: "completed", detail },
+          }),
+        );
+        expect(activity?.payload).toMatchObject({
+          detail: length <= 8_000 ? detail : `${detail.slice(0, 7_997)}...`,
+        });
+      }
+    },
+  );
 
   it("maps tool progress without losing call identity", () => {
     const event = runtimeEvent({
