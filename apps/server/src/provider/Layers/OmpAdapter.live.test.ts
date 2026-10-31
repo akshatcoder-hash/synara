@@ -275,14 +275,14 @@ describe("OmpAdapter model selection and late updates (in-memory ACP)", () => {
     async (scenario) => {
       const clientToAgent = Effect.runSync(Queue.unbounded<Uint8Array>());
       const agentToClient = Effect.runSync(Queue.unbounded<Uint8Array>());
-      const sessionUpdate = (text: string) =>
+      const sessionUpdate = (text: string, kind = "agent_message_chunk") =>
         encode({
           jsonrpc: "2.0",
           method: "session/update",
           params: {
             sessionId: "fake-omp-session",
             update: {
-              sessionUpdate: "agent_message_chunk",
+              sessionUpdate: kind,
               content: { type: "text", text },
             },
           },
@@ -330,7 +330,13 @@ describe("OmpAdapter model selection and late updates (in-memory ACP)", () => {
           prompts += 1;
           // The turn's normal chunk is written before the response so the one
           // offered after turn.completed below is the straggler under test.
-          Effect.runPromise(Queue.offer(agentToClient, sessionUpdate("EARLY")));
+          Effect.runPromise(
+            Queue.offerAll(agentToClient, [
+              sessionUpdate("Inspecting ", "agent_thought_chunk"),
+              sessionUpdate("the files.", "agent_thought_chunk"),
+              sessionUpdate("EARLY"),
+            ]),
+          );
           return { stopReason: "end_turn" };
         });
       const spawnerLayer = Layer.succeed(
@@ -420,6 +426,25 @@ describe("OmpAdapter model selection and late updates (in-memory ACP)", () => {
                 30_000,
                 "turn completion",
               );
+              const thoughts = events.filter(
+                (event) =>
+                  event.type === "content.delta" &&
+                  event.payload.streamKind === "reasoning_text" &&
+                  event.turnId === turn.turnId,
+              );
+              expect(thoughts).toHaveLength(2);
+              expect(thoughts.map((event) => event.itemId)).toEqual([
+                `omp:${turn.turnId}:reasoning`,
+                `omp:${turn.turnId}:reasoning`,
+              ]);
+              expect(
+                events.filter(
+                  (event) =>
+                    event.type === "item.completed" &&
+                    event.itemId === thoughts[0]!.itemId &&
+                    event.payload.itemType === "assistant_message",
+                ),
+              ).toHaveLength(0);
               // Settlement has fully finished: activeTurnId is cleared and the
               // drain is closed. This chunk can only land via the late path.
               yield* Queue.offer(agentToClient, sessionUpdate("LATE-CHUNK"));

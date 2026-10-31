@@ -250,13 +250,22 @@ export function makeAcpContentDeltaEvent(input: {
   readonly providerRefs?: ProviderRuntimeEvent["providerRefs"];
   readonly rawPayload: unknown;
 }): ProviderRuntimeEvent {
+  // ACP thought chunks may omit messageId. Keep one turn-owned reasoning
+  // stream in that case, separate from both assistant text and child agents.
+  const itemId =
+    input.itemId ??
+    (input.streamKind === "reasoning_text" && input.turnId
+      ? [input.provider, input.turnId, "reasoning", input.providerRefs?.providerThreadId]
+          .filter((part) => part !== undefined)
+          .join(":")
+      : undefined);
   return {
     type: "content.delta",
     ...input.stamp,
     provider: input.provider,
     threadId: input.threadId,
     turnId: input.turnId,
-    ...(input.itemId ? { itemId: RuntimeItemId.makeUnsafe(input.itemId) } : {}),
+    ...(itemId ? { itemId: RuntimeItemId.makeUnsafe(itemId) } : {}),
     ...(input.providerRefs ? { providerRefs: input.providerRefs } : {}),
     payload: {
       streamKind: input.streamKind ?? "assistant_text",

@@ -677,15 +677,10 @@ export function projectProviderRuntimeActivities(
     typeof sessionSequence === "number" && Number.isInteger(sessionSequence) && sessionSequence >= 0
       ? { sequence: sessionSequence }
       : {};
-  // Claude previews are coalesced by ingestion; other providers publish their
-  // readable reasoning only at completion. Empty/encrypted boundaries stay hidden.
+  // Ingestion coalesces readable previews into one row per provider item.
+  // Empty/encrypted boundaries stay hidden.
   if (
-    (((event.provider === "codex" ||
-      event.provider === "antigravity" ||
-      event.provider === "opencode") &&
-      event.type === "item.completed") ||
-      (event.provider === "claudeAgent" &&
-        (event.type === "item.updated" || event.type === "item.completed"))) &&
+    (event.type === "item.updated" || event.type === "item.completed") &&
     event.payload.itemType === "reasoning" &&
     event.itemId !== undefined &&
     readableReasoningDetail(event.payload.detail) !== undefined
@@ -701,12 +696,7 @@ export function projectProviderRuntimeActivities(
         summary: "Reasoning trace",
         payload: toActivityPayload({
           ...(event.payload.status ? { status: event.payload.status } : {}),
-          detail: truncateDetail(
-            reasoningDetail,
-            event.provider === "claudeAgent"
-              ? MAX_REASONING_DETAIL_CHARS
-              : MAX_ACTIVITY_DATA_STRING_CHARS,
-          ),
+          detail: truncateDetail(reasoningDetail, MAX_REASONING_DETAIL_CHARS),
           data: { toolCallId: reasoningItemId },
         }),
         turnId: toTurnId(event.turnId) ?? null,
